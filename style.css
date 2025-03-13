@@ -1,0 +1,110 @@
+/* Basic reset for margins, padding, and box sizing */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Cinzel', serif;
+    background-color: #1e1e1e;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    text-align: center;
+    overflow: hidden; /* Prevent scrollbars from appearing */
+}
+
+.game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+}
+
+/* Start button styling */
+button {
+    padding: 20px 40px;
+    font-size: 24px;
+    cursor: pointer;
+    background-color: #8b0000;
+    color: white;
+    border: 2px solid #333;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    transition: all 0.3s ease;
+    font-family: 'Cinzel', serif;
+}
+
+button:hover {
+    background-color: #cc0000;
+    border-color: #fff;
+}
+
+button:focus {
+    outline: none;
+}
+
+/* Scoreboard */
+.scoreboard {
+    font-family: 'Cinzel', serif;
+    font-size: 24px;
+    color: #f4f4f4;
+    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7);
+    margin: 10px;
+}
+
+#scoreboard {
+    font-size: 24px;
+    color: #f4f4f4;
+    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7);
+}
+
+/* Canvas styling with fog effect */
+canvas {
+    border: 4px solid #333;
+    background-color: #000;
+    margin-top: 0;  /* Remove top margin since we're using gap */
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+    position: relative;
+}
+
+.fog {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    pointer-events: none;
+    animation: fogMove 10s infinite linear;
+}
+
+@keyframes fogMove {
+    from { opacity: 0.1; top: -100%; }
+    to { opacity: 0.1; top: 100%; }
+}
+
+/* Game Over Styling */
+.game-over {
+    font-family: 'Cinzel', serif;
+    font-size: 32px;
+    color: #e60000;
+    text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.8);
+    margin-top: 100px;
+}
+
+/* Adjustments for responsiveness */
+@media (max-width: 600px) {
+    canvas {
+        width: 100%;
+        height: 400px;
+    }
+    button {
+        padding: 15px 30px;
+        font-size: 20px;
+    }
+}
