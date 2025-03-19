@@ -1,5 +1,19 @@
+function resizeCanvas() {
+    const isMobile = window.innerWidth <= 800;
+    
+    if (isMobile) {
+        canvas.width = window.innerWidth - 40; // Mobile: full width minus padding
+        canvas.height = (window.innerWidth - 40) * (3/4); // Keep 4:3 ratio
+    } else {
+        canvas.width = 1600; // Desktop: fixed large size
+        canvas.height = 1200;
+    }
+}
+
 let canvas = document.getElementById("game-canvas");
 let ctx = canvas.getContext("2d");
+
+resizeCanvas(); // Call immediately after getting canvas element
 
 let player = {
     x: 50,
@@ -25,8 +39,8 @@ let particles = [];
 
 // Start the game
 function startGame() {
-    canvas.width = 800;
-    canvas.height = 600;
+    resizeCanvas();
+    setupMobileControls();
     gameActive = true;
     score = 0;
     level = 1;
@@ -239,6 +253,32 @@ window.addEventListener("keydown", (e) => {
 window.addEventListener("keyup", (e) => {
     keys[e.key] = false;
 });
+
+window.addEventListener('resize', resizeCanvas);
+
+// Mobile controls
+const setupMobileControls = () => {
+    const upBtn = document.getElementById('up-btn');
+    const downBtn = document.getElementById('down-btn');
+    const leftBtn = document.getElementById('left-btn');
+    const rightBtn = document.getElementById('right-btn');
+
+    const handleTouch = (button, key) => {
+        button.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            keys[key] = true;
+        });
+        button.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            keys[key] = false;
+        });
+    };
+
+    handleTouch(upBtn, 'ArrowUp');
+    handleTouch(downBtn, 'ArrowDown');
+    handleTouch(leftBtn, 'ArrowLeft');
+    handleTouch(rightBtn, 'ArrowRight');
+};
 
 // Function to update power-ups
 function updatePowerUps() {

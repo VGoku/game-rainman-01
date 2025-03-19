@@ -24,6 +24,9 @@ body {
     justify-content: center;
     gap: 20px;
     padding: 20px;
+    width: 100%;
+    max-width: 1800px;
+    margin: 0 auto;
 }
 
 /* Start button styling */
@@ -72,6 +75,10 @@ canvas {
     margin-top: 0;  /* Remove top margin since we're using gap */
     box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
     position: relative;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 90vh;
 }
 
 .fog {
@@ -97,6 +104,35 @@ canvas {
     margin-top: 100px;
 }
 
+/* Mobile controls */
+.mobile-controls {
+    display: none;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.control-button {
+    width: 60px;
+    height: 60px;
+    background-color: rgba(139, 0, 0, 0.7);
+    border-radius: 50%;
+    border: 2px solid #333;
+    font-size: 24px;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Show mobile controls only on touch devices */
+@media (hover: none) and (pointer: coarse) {
+    .mobile-controls {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        justify-items: center;
+    }
+}
+
 /* Adjustments for responsiveness */
 @media (max-width: 600px) {
     canvas {
@@ -106,5 +142,35 @@ canvas {
     button {
         padding: 15px 30px;
         font-size: 20px;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 800px) {
+    .game-container {
+        padding: 10px;
+    }
+
+    canvas {
+        width: 100%;
+        height: auto;
+    }
+
+    button {
+        padding: 15px 30px;
+        font-size: 18px;
+    }
+
+    .scoreboard {
+        font-size: 18px;
+    }
+}
+
+/* Desktop-specific styles */
+@media (min-width: 1200px) {
+    .game-container {
+        padding: 30px;
+        max-width: 1200px;
+        margin: 0 auto;
     }
 }
