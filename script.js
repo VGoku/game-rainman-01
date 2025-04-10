@@ -39,7 +39,15 @@ let doppelgangerShip = null;
 const canvas = document.getElementById("renderCanvas");
 
 function initGame() {
-    engine = new BABYLON.Engine(canvas, true);
+    // Create engine with antialias and adaptToDeviceRatio options
+    engine = new BABYLON.Engine(canvas, true, {
+        preserveDrawingBuffer: true,
+        stencil: true,
+        antialias: true,
+        adaptToDeviceRatio: true,
+        powerPreference: "high-performance"
+    });
+    
     scene = new BABYLON.Scene(engine);
     
     // Camera setup for side view (Space Invaders style)
@@ -59,44 +67,73 @@ function initGame() {
     const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
     light.intensity = 0.7;
 
-    // Initialize sounds with better loading
+    // Initialize sounds with local files
     const soundsToLoad = [
         {
             name: "shoot",
-            url: "https://assets.codepen.io/123456/laser.mp3",
+            url: "sounds/laser.mp3",
             options: { volume: 0.5 }
         },
         {
             name: "explosion",
-            url: "https://assets.codepen.io/123456/explosion.mp3",
+            url: "sounds/explosion.mp3",
             options: { volume: 0.6 }
         },
         {
             name: "powerup",
-            url: "https://assets.codepen.io/123456/powerup.mp3",
+            url: "sounds/powerup.mp3",
             options: { volume: 0.5 }
         }
     ];
 
-    // Load all sounds
+    // Load all sounds with error handling
     soundsToLoad.forEach(sound => {
         const newSound = new BABYLON.Sound(
             sound.name,
             sound.url,
             scene,
-            () => console.log(`${sound.name} sound loaded`),
+            () => {
+                console.log(`${sound.name} sound loaded successfully`);
+            },
             {
                 ...sound.options,
                 spatialSound: false,
-                distanceModel: "linear"
+                distanceModel: "linear",
+                streaming: true,
+                onError: (error) => {
+                    console.warn(`Error loading ${sound.name} sound:`, error);
+                }
             }
         );
         
-        // Store sound references
+        // Store sound references and add error handling
         if (sound.name === "shoot") shootSound = newSound;
         if (sound.name === "explosion") explosionSound = newSound;
         if (sound.name === "powerup") powerUpSound = newSound;
     });
+
+    // Create a fallback sound in case loading fails
+    const fallbackSound = new BABYLON.Sound("fallback", null, scene, null, {
+        spatialSound: false,
+        distanceModel: "linear"
+    });
+
+    // Function to safely play sounds
+    window.playSound = function(soundType) {
+        try {
+            const sound = {
+                shoot: shootSound,
+                explosion: explosionSound,
+                powerup: powerUpSound
+            }[soundType] || fallbackSound;
+
+            if (sound && sound.isReady) {
+                sound.play();
+            }
+        } catch (error) {
+            console.warn(`Error playing ${soundType} sound:`, error);
+        }
+    }
 
     createEnvironment();
     createPlayer();
@@ -329,7 +366,7 @@ function createProjectile() {
         projectiles.push(projectile);
     });
     
-    shootSound.play();
+    window.playSound("shoot");
 }
 
 function createDoppelganger() {
@@ -384,7 +421,7 @@ function updateGame() {
             if (projectile.intersectsMesh(obstacle, false)) {
                 // Create explosion effect at obstacle position
                 createExplosionEffect(obstacle.position);
-                explosionSound.play();
+                window.playSound("explosion");
                 
                 projectile.dispose();
                 projectiles.splice(i, 1);
@@ -412,7 +449,7 @@ function updateGame() {
             if (activeEffects.invincible) {
                 // Destroy enemy and add points when invincible
                 createExplosionEffect(obstacle.position);
-                explosionSound.play();
+                window.playSound("explosion");
                 obstacle.dispose();
                 obstacles.splice(i, 1);
                 score += 30;
@@ -441,7 +478,7 @@ function updateGame() {
     for (let i = powerUps.length - 1; i >= 0; i--) {
         const powerUp = powerUps[i];
         if (powerUp.intersectsMesh(player, false)) {
-            powerUpSound.play();
+            window.playSound("powerup");
             activatePowerUp(powerUp.powerUpType);
             powerUp.dispose();
             powerUps.splice(i, 1);
@@ -553,10 +590,7 @@ function updatePlayerUI() {
 
 function gameOver() {
     gameActive = false;
-    // Show retry button instead of alert
     document.getElementById("retry-button").style.display = "block";
-    
-    // Display final score in the scoreboard
     document.getElementById("scoreboard").innerText = `Game Over! Final Score: ${score}`;
 }
 
@@ -565,8 +599,12 @@ function startGame() {
     score = 0;
     level = 1;
     gameActive = true;
+    
+    // Hide both start buttons and the instructions modal
     document.getElementById("start-button").style.display = "none";
+    document.getElementById("start-game").style.display = "none";
     document.getElementById("retry-button").style.display = "none";
+    document.getElementById("instructions-modal").style.display = "none";
     
     // Reset player position to bottom
     player.position = new BABYLON.Vector3(0, -8, 0);
@@ -594,6 +632,9 @@ function startGame() {
     // Initialize first power-up and reset timer
     createPowerUp();
     lastPowerUpSpawnTime = Date.now();
+    
+    // Initialize player shooting ability
+    activeEffects.canShoot = true;
     
     updateScore();
     updatePlayerUI();
@@ -657,11 +698,13 @@ fireButton.addEventListener("touchend", (e) => {
     keys["Space"] = false;
 });
 
-// Start button event listener
-document.getElementById("start-button").addEventListener("click", startGame);
-
-// Add retry button event listener
-document.getElementById("retry-button").addEventListener("click", startGame);
-
-// Initialize the game when the page loads
-initGame();
+// Initialize event listeners after document is loaded
+document.addEventListener("DOMContentLoaded", () => {
+    // Start button event listeners
+    document.getElementById("start-game").addEventListener("click", startGame);
+    document.getElementById("start-button").addEventListener("click", startGame);
+    document.getElementById("retry-button").addEventListener("click", startGame);
+    
+    // Initialize the game
+    initGame();
+});
