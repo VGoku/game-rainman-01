@@ -3,24 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game</title>
+    <title>3D Rain Game</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="game-container">
         <div id="scoreboard"></div>
-        <canvas id="game-canvas"></canvas>
+        <div id="player-stats">
+            <div class="health-bar">
+                <div class="health-fill"></div>
+            </div>
+            <div class="exp-bar">
+                <div class="exp-fill"></div>
+            </div>
+        </div>
+        <canvas id="renderCanvas"></canvas>
         <button id="start-button">Start Game</button>
+        <button id="retry-button">Retry if you dare!</button>
         <div class="mobile-controls">
-            <button class="control-button" id="left-btn">←</button>
-            <button class="control-button" id="up-btn">↑</button>
-            <button class="control-button" id="right-btn">→</button>
-            <button class="control-button" id="down-btn">↓</button>
+            <div id="touchpad"></div>
+            <button id="fire-button">FIRE</button>
         </div>
     </div>
 
-    <!-- Updated script path -->
+    <!-- Babylon.js and required modules -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs/7.44.0/babylon.min.js"></script>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/babylonjs.materials.min.js"></script>
+    <script src="https://cdn.babylonjs.com/babylonjs.loaders.min.js"></script>
     <script src="script.js"></script>
-    
 </body>
 </html>
