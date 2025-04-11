@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Rain Game</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="game-container">
-        <div id="scoreboard"></div>
+        <div id="scoreboard">Score: 0 | Level: 1</div>
         <div id="player-stats">
             <div class="health-bar">
                 <div class="health-fill"></div>
@@ -27,9 +28,9 @@
                     
                     <h3>Power-ups:</h3>
                     <ul>
-                        <li><span class="power-cyan">Blue</span> - Invincibility</li>
-                        <li><span class="power-orange">Orange</span> - Rapid Fire</li>
-                        <li><span class="power-purple">Purple</span> - Doppelganger</li>
+                        <li><span class="power-cyan">Blue</span> - Invincibility: (10 seconds)</li>
+                        <li><span class="power-orange">Orange</span> - Rapid Fire: (10 seconds)</li>
+                        <li><span class="power-purple">Purple</span> - Doppelganger: (10 seconds)</li>
                     </ul>
                     
                     <h3>Leveling System:</h3>
@@ -49,11 +50,15 @@
         </div>
     </div>
 
-    <!-- Babylon.js and required modules -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs/7.44.0/babylon.min.js"></script>
+    <!-- Babylon.js and required modules - using single consistent version -->
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
-    <script src="https://cdn.babylonjs.com/babylonjs.materials.min.js"></script>
-    <script src="https://cdn.babylonjs.com/babylonjs.loaders.min.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <script src="https://cdn.babylonjs.com/materials/babylonjs.materials.min.js"></script>
+    
+    <!-- Add Howler.js for sound -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+    
+    <!-- Game script -->
     <script src="script.js"></script>
 </body>
 </html>

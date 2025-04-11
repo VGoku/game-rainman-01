@@ -17,6 +17,13 @@ let activeEffects = {
     doppelganger: false
 };
 
+// Add power-up timers
+let powerUpTimers = {
+    invincible: 0,
+    shoot: 0,
+    doppelganger: 0
+};
+
 let lastPowerUpSpawnTime = 0;
 const POWER_UP_SPAWN_INTERVAL = 5000; // Changed to 5 seconds
 
@@ -385,6 +392,9 @@ function createDoppelganger() {
 }
 
 function updateGame() {
+    // Add this at the beginning of updateGame
+    updatePowerUps();
+
     // Handle player movement with correct controls
     if (keys["ArrowLeft"] || keys["a"]) {
         player.position.x -= player.speed; // Move left
@@ -551,33 +561,60 @@ function updateGame() {
 }
 
 function activatePowerUp(type) {
+    const powerUpKey = type === 'shoot' ? 'shoot' : type;
+    powerUpTimers[powerUpKey] = (powerUpTimers[powerUpKey] || 0) + 10000; // Add 10 seconds
+    
     if (type === 'invincible') {
         activeEffects.invincible = true;
         player.material.emissiveColor = new BABYLON.Color3(0, 1, 1);
-        setTimeout(() => {
-            activeEffects.invincible = false;
-            player.material.emissiveColor = new BABYLON.Color3(0.5, 0, 0.5);
-        }, 10000); // 10 seconds
     } else if (type === 'shoot') {
         activeEffects.canShoot = true;
-        setTimeout(() => {
-            activeEffects.canShoot = false;
-        }, 10000); // 10 seconds
     } else if (type === 'doppelganger') {
         activeEffects.doppelganger = true;
         player.visibility = 0.8;
         createDoppelganger();
-        setTimeout(() => {
-            activeEffects.doppelganger = false;
-            player.visibility = 1;
-            if (doppelgangerShip) {
-                doppelgangerShip.dispose();
-                doppelgangerShip = null;
-            }
-        }, 10000);
     }
     score += 25;
     updateScore();
+}
+
+function updatePowerUps() {
+    const currentTime = Date.now();
+    
+    // Update each power-up timer
+    Object.keys(powerUpTimers).forEach(type => {
+        if (powerUpTimers[type] > 0) {
+            powerUpTimers[type] -= engine.getDeltaTime();
+            
+            // Handle invincible flashing warning
+            if (type === 'invincible' && powerUpTimers[type] <= 3000) {
+                // Flash every 200ms when close to expiring
+                if (Math.floor(powerUpTimers[type] / 200) % 2 === 0) {
+                    player.material.emissiveColor = new BABYLON.Color3(0, 1, 1);
+                } else {
+                    player.material.emissiveColor = new BABYLON.Color3(0.5, 0, 0.5);
+                }
+            }
+            
+            // Deactivate power-up when timer runs out
+            if (powerUpTimers[type] <= 0) {
+                powerUpTimers[type] = 0;
+                if (type === 'invincible') {
+                    activeEffects.invincible = false;
+                    player.material.emissiveColor = new BABYLON.Color3(0.5, 0, 0.5);
+                } else if (type === 'shoot') {
+                    activeEffects.canShoot = false;
+                } else if (type === 'doppelganger') {
+                    activeEffects.doppelganger = false;
+                    player.visibility = 1;
+                    if (doppelgangerShip) {
+                        doppelgangerShip.dispose();
+                        doppelgangerShip = null;
+                    }
+                }
+            }
+        }
+    });
 }
 
 function updateScore() {
@@ -617,10 +654,9 @@ function startGame() {
     projectiles.forEach(projectile => projectile.dispose());
     projectiles = [];
     
-    // Reset power-up effects
-    activeEffects.invincible = false;
-    activeEffects.canShoot = false;
-    activeEffects.doppelganger = false;
+    // Reset power-up effects and timers
+    Object.keys(activeEffects).forEach(key => activeEffects[key] = false);
+    Object.keys(powerUpTimers).forEach(key => powerUpTimers[key] = 0);
     
     // Reset player stats
     playerStats.level = 1;
@@ -632,9 +668,6 @@ function startGame() {
     // Initialize first power-up and reset timer
     createPowerUp();
     lastPowerUpSpawnTime = Date.now();
-    
-    // Initialize player shooting ability
-    activeEffects.canShoot = true;
     
     updateScore();
     updatePlayerUI();
