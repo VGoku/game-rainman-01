@@ -215,6 +215,7 @@ button:focus {
     background: rgba(255, 255, 255, 0.2);
     border-radius: 50%;
     border: 2px solid rgba(255, 255, 255, 0.3);
+    touch-action: none;
 }
 
 #fire-button {
@@ -231,6 +232,7 @@ button:focus {
     display: flex;
     align-items: center;
     justify-content: center;
+    touch-action: none;
 }
 
 /* Instructions modal */

@@ -305,7 +305,8 @@ function createObstacle() {
     // Rotate to face down towards player
     obstacle.rotation = new BABYLON.Vector3(0, 0, -Math.PI/2);
     
-    obstacle.speed = 0.03 * (1 + (level * 0.2));
+    // Increase base speed and level scaling for better movement
+    obstacle.speed = 0.05 * (1 + (level * 0.1));
     obstacles.push(obstacle);
 }
 
@@ -572,7 +573,9 @@ function activatePowerUp(type) {
     } else if (type === 'doppelganger') {
         activeEffects.doppelganger = true;
         player.visibility = 0.8;
-        createDoppelganger();
+        if (!doppelgangerShip) {
+            createDoppelganger();
+        }
     }
     score += 25;
     updateScore();
@@ -622,7 +625,19 @@ function updateScore() {
 }
 
 function updatePlayerUI() {
-    document.getElementById("player-stats").innerText = `Level: ${playerStats.level} | Health: ${playerStats.currentHealth}/${playerStats.maxHealth} | EXP: ${playerStats.currentExp}/${playerStats.expToNextLevel}`;
+    // Update the health bar
+    const healthPercentage = (playerStats.currentHealth / playerStats.maxHealth) * 100;
+    const healthFill = document.querySelector('.health-fill');
+    if (healthFill) {
+        healthFill.style.width = `${healthPercentage}%`;
+    }
+    
+    // Update the experience bar
+    const expPercentage = (playerStats.currentExp / playerStats.expToNextLevel) * 100;
+    const expFill = document.querySelector('.exp-fill');
+    if (expFill) {
+        expFill.style.width = `${expPercentage}%`;
+    }
 }
 
 function gameOver() {
@@ -646,6 +661,16 @@ function startGame() {
     // Reset player position to bottom
     player.position = new BABYLON.Vector3(0, -8, 0);
     
+    // Reset player material
+    player.material.emissiveColor = new BABYLON.Color3(0.5, 0, 0.5);
+    player.visibility = 1.0;
+    
+    // Cleanup any existing doppelganger
+    if (doppelgangerShip) {
+        doppelgangerShip.dispose();
+        doppelgangerShip = null;
+    }
+    
     // Clear existing objects
     obstacles.forEach(obstacle => obstacle.dispose());
     obstacles = [];
@@ -657,6 +682,9 @@ function startGame() {
     // Reset power-up effects and timers
     Object.keys(activeEffects).forEach(key => activeEffects[key] = false);
     Object.keys(powerUpTimers).forEach(key => powerUpTimers[key] = 0);
+    
+    // Enable shooting by default so player can fire
+    activeEffects.canShoot = true;
     
     // Reset player stats
     playerStats.level = 1;
@@ -686,57 +714,89 @@ window.addEventListener("keyup", (e) => {
 const touchpad = document.getElementById("touchpad");
 const fireButton = document.getElementById("fire-button");
 
-touchpad.addEventListener("touchstart", (e) => {
-    e.preventDefault();
-    const touch = e.touches[0];
-    const rect = touchpad.getBoundingClientRect();
-    touchStartX = touch.clientX - rect.left;
-    touchStartY = touch.clientY - rect.top;
-    isTouchActive = true;
-});
+// Ensure these elements exist before adding event listeners
+if (touchpad) {
+    touchpad.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const rect = touchpad.getBoundingClientRect();
+        touchStartX = touch.clientX - rect.left;
+        touchStartY = touch.clientY - rect.top;
+        isTouchActive = true;
+    });
 
-touchpad.addEventListener("touchmove", (e) => {
-    e.preventDefault();
-    if (!isTouchActive) return;
+    touchpad.addEventListener("touchmove", (e) => {
+        e.preventDefault();
+        if (!isTouchActive || !gameActive) return;
 
-    const touch = e.touches[0];
-    const rect = touchpad.getBoundingClientRect();
-    const currentX = touch.clientX - rect.left;
-    const currentY = touch.clientY - rect.top;
+        const touch = e.touches[0];
+        const rect = touchpad.getBoundingClientRect();
+        const currentX = touch.clientX - rect.left;
+        const currentY = touch.clientY - rect.top;
 
-    const deltaX = (currentX - touchStartX) / rect.width;
-    const deltaY = (currentY - touchStartY) / rect.height;
+        const deltaX = (currentX - touchStartX) / rect.width;
+        const deltaY = (currentY - touchStartY) / rect.height;
 
-    // Move player based on touch movement
-    player.position.x += deltaX * player.speed * 2;
-    player.position.y -= deltaY * player.speed * 2;
+        // Move player based on touch movement
+        player.position.x += deltaX * player.speed * 3;
+        player.position.y -= deltaY * player.speed * 3;
 
-    // Keep player within bounds
-    player.position.x = Math.max(-10, Math.min(10, player.position.x));
-    player.position.y = Math.max(-9, Math.min(9, player.position.y));
-});
+        // Keep player within bounds
+        player.position.x = Math.max(-10, Math.min(10, player.position.x));
+        player.position.y = Math.max(-9, Math.min(9, player.position.y));
+    });
 
-touchpad.addEventListener("touchend", () => {
-    isTouchActive = false;
-});
+    touchpad.addEventListener("touchend", () => {
+        isTouchActive = false;
+    });
+}
 
 // Fire button for mobile
-fireButton.addEventListener("touchstart", (e) => {
-    e.preventDefault();
-    keys["Space"] = true;
-});
+if (fireButton) {
+    fireButton.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        keys["Space"] = true;
+    });
 
-fireButton.addEventListener("touchend", (e) => {
-    e.preventDefault();
-    keys["Space"] = false;
-});
+    fireButton.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        keys["Space"] = false;
+    });
+}
 
 // Initialize event listeners after document is loaded
 document.addEventListener("DOMContentLoaded", () => {
     // Start button event listeners
-    document.getElementById("start-game").addEventListener("click", startGame);
-    document.getElementById("start-button").addEventListener("click", startGame);
-    document.getElementById("retry-button").addEventListener("click", startGame);
+    const startGameBtn = document.getElementById("start-game");
+    const startBtn = document.getElementById("start-button");
+    const retryBtn = document.getElementById("retry-button");
+    
+    if (startGameBtn) {
+        startGameBtn.addEventListener("click", startGame);
+        // Add touch event for mobile
+        startGameBtn.addEventListener("touchend", (e) => {
+            e.preventDefault();
+            startGame();
+        });
+    }
+    
+    if (startBtn) {
+        startBtn.addEventListener("click", startGame);
+        // Add touch event for mobile
+        startBtn.addEventListener("touchend", (e) => {
+            e.preventDefault();
+            startGame();
+        });
+    }
+    
+    if (retryBtn) {
+        retryBtn.addEventListener("click", startGame);
+        // Add touch event for mobile
+        retryBtn.addEventListener("touchend", (e) => {
+            e.preventDefault();
+            startGame();
+        });
+    }
     
     // Initialize the game
     initGame();
