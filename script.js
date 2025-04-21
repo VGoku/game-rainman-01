@@ -347,34 +347,52 @@ function createPowerUp() {
     powerUps.push(powerUp);
 }
 
-function createProjectile() {
+function createProjectile(fromDoppelganger = false) {
     // Create three projectiles in a spread pattern
     const spread = 0.3;
     const angles = [-spread, 0, spread];
     
+    // Set the shoot position (original player or doppelganger)
+    const shootPosition = fromDoppelganger && doppelgangerShip 
+        ? new BABYLON.Vector3(doppelgangerShip.position.x, doppelgangerShip.position.y, 0)
+        : new BABYLON.Vector3(player.position.x, player.position.y, 0);
+    
     angles.forEach(angle => {
         const projectile = BABYLON.MeshBuilder.CreateCylinder("projectile", {
-            height: 0.4,
-            diameter: 0.15
+            height: activeEffects.invincible ? 0.6 : 0.4,  // Larger projectiles when invincible
+            diameter: activeEffects.invincible ? 0.25 : 0.15
         }, scene);
         
         const projectileMaterial = new BABYLON.StandardMaterial("projectileMat", scene);
-        projectileMaterial.emissiveColor = new BABYLON.Color3(1, 0.5, 0);
+        
+        // Change projectile color based on state
+        if (activeEffects.invincible) {
+            // Cyan projectiles when invincible
+            projectileMaterial.emissiveColor = fromDoppelganger 
+                ? new BABYLON.Color3(0, 0.8, 0.8) // Slightly different cyan for doppelganger
+                : new BABYLON.Color3(0, 1, 1); 
+        } else {
+            projectileMaterial.emissiveColor = fromDoppelganger 
+                ? new BABYLON.Color3(0.5, 0, 1) // Purple for doppelganger projectiles
+                : new BABYLON.Color3(1, 0.5, 0); // Orange for player projectiles
+        }
+        
         projectile.material = projectileMaterial;
         
         projectile.rotation.z = Math.PI / 2;
-        projectile.position = new BABYLON.Vector3(
-            player.position.x,
-            player.position.y,
-            0
-        );
+        projectile.position = shootPosition.clone();
         
-        projectile.speed = 0.3;
+        // Enhanced speed when invincible
+        projectile.speed = activeEffects.invincible ? 0.4 : 0.3;
         projectile.direction = new BABYLON.Vector3(Math.sin(angle), Math.cos(angle), 0);
+        projectile.damage = activeEffects.invincible ? 2 : 1; // Double damage when invincible
         projectiles.push(projectile);
     });
     
-    window.playSound("shoot");
+    // Only play sound once even if both shoot
+    if (!fromDoppelganger) {
+        window.playSound("shoot");
+    }
 }
 
 function createDoppelganger() {
@@ -414,12 +432,20 @@ function updateGame() {
     const currentTime = Date.now();
     if ((keys[" "] || keys["Space"]) && activeEffects.canShoot && currentTime - lastShotTime > 500) {
         createProjectile();
+        
+        // If doppelganger is active, shoot from doppelganger as well
+        if (activeEffects.doppelganger && doppelgangerShip) {
+            createProjectile(true);
+        }
+        
         lastShotTime = currentTime;
     }
 
-    // Keep player within bounds
-    player.position.x = Math.max(-10, Math.min(10, player.position.x));
-    player.position.y = Math.max(-9, Math.min(9, player.position.y));
+    // Improved boundary constraints with visual size consideration
+    const playerWidth = 1.2; // Approximate player width
+    const playerHeight = 0.8; // Approximate player height
+    player.position.x = Math.max(-10 + playerWidth/2, Math.min(10 - playerWidth/2, player.position.x));
+    player.position.y = Math.max(-9 + playerHeight/2, Math.min(9 - playerHeight/2, player.position.y));
 
     // Update projectiles with direction
     for (let i = projectiles.length - 1; i >= 0; i--) {
@@ -436,10 +462,14 @@ function updateGame() {
                 
                 projectile.dispose();
                 projectiles.splice(i, 1);
+                
+                // When invincible, bullets do double damage and score
+                const damageMultiplier = projectile.damage || 1;
+                score += 20 * damageMultiplier;
+                addExperience(15 * damageMultiplier);
+                
                 obstacle.dispose();
                 obstacles.splice(j, 1);
-                score += 20;
-                addExperience(15); // Add experience for destroying enemies
                 updateScore();
                 break;
             }
@@ -507,18 +537,6 @@ function updateGame() {
         lastPowerUpSpawnTime = currentTime;
     }
 
-    // If doppelganger is active, shoot from both positions when spacebar is pressed
-    if ((keys[" "] || keys["Space"]) && activeEffects.doppelganger && currentTime - lastShotTime > 500) {
-        createProjectile();
-        // Create mirror projectiles from opposite side
-        const mirrorX = -player.position.x;
-        const originalX = player.position.x;
-        player.position.x = mirrorX;
-        createProjectile();
-        player.position.x = originalX;
-        lastShotTime = currentTime;
-    }
-
     // Update doppelganger position if active
     if (activeEffects.doppelganger && doppelgangerShip) {
         doppelgangerShip.position.x = -player.position.x;
@@ -568,6 +586,9 @@ function activatePowerUp(type) {
     if (type === 'invincible') {
         activeEffects.invincible = true;
         player.material.emissiveColor = new BABYLON.Color3(0, 1, 1);
+        
+        // Also enhance shooting while invincible
+        activeEffects.canShoot = true;
     } else if (type === 'shoot') {
         activeEffects.canShoot = true;
     } else if (type === 'doppelganger') {
@@ -605,8 +626,16 @@ function updatePowerUps() {
                 if (type === 'invincible') {
                     activeEffects.invincible = false;
                     player.material.emissiveColor = new BABYLON.Color3(0.5, 0, 0.5);
+                    
+                    // Check if shoot powerup is also running
+                    if (powerUpTimers.shoot <= 0) {
+                        activeEffects.canShoot = false;
+                    }
                 } else if (type === 'shoot') {
-                    activeEffects.canShoot = false;
+                    // Only disable shooting if invincible is not active
+                    if (powerUpTimers.invincible <= 0) {
+                        activeEffects.canShoot = false;
+                    }
                 } else if (type === 'doppelganger') {
                     activeEffects.doppelganger = false;
                     player.visibility = 1;
@@ -734,19 +763,40 @@ if (touchpad) {
         const currentX = touch.clientX - rect.left;
         const currentY = touch.clientY - rect.top;
 
-        const deltaX = (currentX - touchStartX) / rect.width;
-        const deltaY = (currentY - touchStartY) / rect.height;
-
-        // Move player based on touch movement
-        player.position.x += deltaX * player.speed * 3;
-        player.position.y -= deltaY * player.speed * 3;
-
-        // Keep player within bounds
-        player.position.x = Math.max(-10, Math.min(10, player.position.x));
-        player.position.y = Math.max(-9, Math.min(9, player.position.y));
+        // Calculate normalized delta values 
+        const deltaX = (currentX - touchStartX) / (rect.width / 2);
+        const deltaY = (currentY - touchStartY) / (rect.height / 2);
+        
+        // Use requestAnimationFrame for smoother movement
+        requestAnimationFrame(() => {
+            // Apply direct position change instead of incremental for smoothness
+            // Increased speed factor and smoother control with non-linear response
+            const speedMultiplier = 0.4;
+            
+            // Non-linear response for more precision at small movements
+            const applyNonLinear = (value) => Math.sign(value) * Math.pow(Math.abs(value), 1.5);
+            
+            player.position.x += applyNonLinear(deltaX) * speedMultiplier;
+            player.position.y -= applyNonLinear(deltaY) * speedMultiplier;
+            
+            // Apply the same boundary constraints as in updateGame
+            const playerWidth = 1.2;
+            const playerHeight = 0.8;
+            player.position.x = Math.max(-10 + playerWidth/2, Math.min(10 - playerWidth/2, player.position.x));
+            player.position.y = Math.max(-9 + playerHeight/2, Math.min(9 - playerHeight/2, player.position.y));
+        });
+        
+        // Update touch start for relative movement from new position
+        touchStartX = currentX;
+        touchStartY = currentY;
     });
 
     touchpad.addEventListener("touchend", () => {
+        isTouchActive = false;
+    });
+    
+    // Add touchcancel handler for better robustness
+    touchpad.addEventListener("touchcancel", () => {
         isTouchActive = false;
     });
 }
